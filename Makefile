@@ -9,14 +9,10 @@ HASH := \#
 TAG_SQLITE3=$(shell printf "$(HASH)include <dqlite.h>\nvoid main(){dqlite_node_id n = 1;}" | $(CC) ${CGO_CFLAGS} -o /dev/null -xc - >/dev/null 2>&1 && echo "libsqlite3")
 GOPATH ?= $(HOME)/go
 CGO_LDFLAGS_ALLOW ?= (-Wl,-wrap,pthread_create)|(-Wl,-z,now)
-export GO111MODULE=off
+GO ?= go
 
 .PHONY: default
-default: get build
-
-.PHONY: get
-get:
-	go get -t -v -d ./...
+default: build
 
 .PHONY: build
 build:
@@ -24,26 +20,24 @@ ifeq ($(TAG_SQLITE3),)
 	@echo "Missing dqlite, run \"make deps\" to setup."
 	exit 1
 endif
-
-	CC="$(CC)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./...
-	CGO_ENABLED=0 go install -v -tags netgo ./lxd-p2c
-	CGO_ENABLED=0 go install -v -tags agent,netgo ./lxd-agent
+	CC="$(CC)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" $(GO) install -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./...
+	CGO_ENABLED=0 $(GO) install -v -tags netgo ./lxd-p2c
+	CGO_ENABLED=0 $(GO) install -v -tags agent,netgo ./lxd-agent
 	@echo "LXD built successfully"
 
 .PHONY: client
 client:
-	go get -t -v -d ./...
-	go install -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./lxc
+	$(GO) install -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./lxc
 	@echo "LXD client built successfully"
 
 .PHONY: lxd-agent
 lxd-agent:
-	CGO_ENABLED=0 go install -v -tags agent,netgo ./lxd-agent
+	CGO_ENABLED=0 $(GO) install -v -tags agent,netgo ./lxd-agent
 	@echo "LXD agent built successfully"
 
 .PHONY: lxd-p2c
 lxd-p2c:
-	CGO_ENABLED=0 go install -v -tags netgo ./lxd-p2c
+	CGO_ENABLED=0 $(GO) install -v -tags netgo ./lxd-p2c
 	@echo "LXD-P2C built successfully"
 
 .PHONY: deps
@@ -87,25 +81,20 @@ deps:
 	@echo "export CGO_LDFLAGS_ALLOW=\"(-Wl,-wrap,pthread_create)|(-Wl,-z,now)\""
 
 
-.PHONY: update
-update:
-	go get -t -v -d -u ./...
-	@echo "Dependencies updated"
-
 .PHONY: update-protobuf
 update-protobuf:
 	protoc --go_out=. ./lxd/migration/migrate.proto
 
 .PHONY: update-schema
 update-schema:
-	cd lxd/db/generate && go build -o lxd-generate -tags "$(TAG_SQLITE3)" $(DEBUG) && cd -
+	cd lxd/db/generate && $(GO) build -o lxd-generate -tags "$(TAG_SQLITE3)" $(DEBUG) && cd -
 	mv lxd/db/generate/lxd-generate $(GOPATH)/bin
-	go generate ./...
+	$(GO) generate ./...
 	@echo "Code generation completed"
 
 .PHONY: update-api
 update-api:
-	GO111MODULE=on go get -v -x github.com/go-swagger/go-swagger/cmd/swagger
+	$(GO) get -v -x github.com/go-swagger/go-swagger/cmd/swagger
 	swagger generate spec -o doc/rest-api.yaml -w ./lxd -m
 
 .PHONY: debug
@@ -114,11 +103,9 @@ ifeq ($(TAG_SQLITE3),)
 	@echo "Missing custom libsqlite3, run \"make deps\" to setup."
 	exit 1
 endif
-
-	go get -t -v -d ./...
-	CC="$(CC)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install -v -tags "$(TAG_SQLITE3) logdebug" $(DEBUG) ./...
-	CGO_ENABLED=0 go install -v -tags "netgo,logdebug" ./lxd-p2c
-	CGO_ENABLED=0 go install -v -tags "agent,netgo,logdebug" ./lxd-agent
+	CC="$(CC)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" $(GO) install -v -tags "$(TAG_SQLITE3) logdebug" $(DEBUG) ./...
+	CGO_ENABLED=0 $(GO) install -v -tags "netgo,logdebug" ./lxd-p2c
+	CGO_ENABLED=0 $(GO) install -v -tags "agent,netgo,logdebug" ./lxd-agent
 	@echo "LXD built successfully"
 
 .PHONY: nocache
@@ -127,11 +114,9 @@ ifeq ($(TAG_SQLITE3),)
 	@echo "Missing custom libsqlite3, run \"make deps\" to setup."
 	exit 1
 endif
-
-	go get -t -v -d ./...
-	CC="$(CC)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install -a -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./...
-	CGO_ENABLED=0 go install -a -v -tags netgo ./lxd-p2c
-	CGO_ENABLED=0 go install -a -v -tags agent,netgo ./lxd-agent
+	CC="$(CC)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" $(GO) install -a -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./...
+	CGO_ENABLED=0 $(GO) install -a -v -tags netgo ./lxd-p2c
+	CGO_ENABLED=0 $(GO) install -a -v -tags agent,netgo ./lxd-agent
 	@echo "LXD built successfully"
 
 race:
@@ -139,19 +124,17 @@ ifeq ($(TAG_SQLITE3),)
 	@echo "Missing custom libsqlite3, run \"make deps\" to setup."
 	exit 1
 endif
-
-	go get -t -v -d ./...
-	CC="$(CC)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install -race -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./...
-	CGO_ENABLED=0 go install -v -tags netgo ./lxd-p2c
-	CGO_ENABLED=0 go install -v -tags agent,netgo ./lxd-agent
+	CC="$(CC)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" $(GO) install -race -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./...
+	CGO_ENABLED=0 $(GO) install -v -tags netgo ./lxd-p2c
+	CGO_ENABLED=0 $(GO) install -v -tags agent,netgo ./lxd-agent
 	@echo "LXD built successfully"
 
 .PHONY: check
 check: default
-	go get -v -x github.com/rogpeppe/godeps
-	go get -v -x github.com/tsenart/deadcode
-	go get -v -x golang.org/x/lint/golint
-	CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go test -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./...
+	$(GO) get -v -x github.com/rogpeppe/godeps
+	$(GO) get -v -x github.com/tsenart/deadcode
+	$(GO) get -v -x golang.org/x/lint/golint
+	GO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" $(GO) test -v -tags "$(TAG_SQLITE3)" $(DEBUG) ./...
 	cd test && ./main.sh
 
 .PHONY: dist
@@ -166,7 +149,7 @@ dist:
 	ln -s ../../../../lxd-$(VERSION) $(TMP)/_dist/src/github.com/lxc/lxd
 
 	# Download dependencies
-	cd $(TMP)/lxd-$(VERSION) && GOPATH=$(TMP)/_dist go get -t -v -d ./...
+	cd $(TMP)/lxd-$(VERSION) && GOPATH=$(TMP)/_dist $(GO) get -t -v -d ./...
 
 	# Download the cluster-enabled sqlite/dqlite
 	mkdir $(TMP)/_dist/deps/
@@ -201,7 +184,7 @@ update-po:
 	done
 
 update-pot:
-	go get -v -x github.com/snapcore/snapd/i18n/xgettext-go/
+	$(GO) get -v -x github.com/snapcore/snapd/i18n/xgettext-go/
 	xgettext-go -o po/$(DOMAIN).pot --add-comments-tag=TRANSLATORS: --sort-output --package-name=$(DOMAIN) --msgid-bugs-address=lxc-devel@lists.linuxcontainers.org --keyword=i18n.G --keyword-plural=i18n.NG lxc/*.go lxc/*/*.go
 
 build-mo: $(MOFILES)

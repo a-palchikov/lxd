@@ -2,7 +2,7 @@
 
 CURRENT_DIR := $(realpath $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST))))))
 TOP_DIR := $(realpath $(CURRENT_DIR)/..)
-BUILDDIR := $(CURRENT_DIR)/bin
+BUILDDIR := $(TOP_DIR)/bin
 DOCKERFILE ?= $(TOP_DIR)/Dockerfile
 
 all: | $(BUILDDIR)
