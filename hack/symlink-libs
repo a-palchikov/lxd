@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+ln -s $(pwd)/bin/libdqlite.so.0.0.1 /usr/local/lib/libdqlite.so.0
+ln -s $(pwd)/bin/libraft.so.0.0.7 /usr/local/lib/libraft.so.0
+ln -s $(pwd)/bin/liblxc.so.1.4.0 /usr/local/lib/liblxc.so.1
